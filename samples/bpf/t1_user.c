@@ -5,17 +5,6 @@
 
 int main(int argc, char **argv)
 {
-	//New stuff
-	int fd;
-	union bpf_attr attr = {
-		.map_type = BPF_MAP_TYPE_ARRAY;
-		.key_size = sizeof(__u32);
-		.value_size = saizeof(__u32);
-		.max_entries = 256;
-		.map_name = "hello_example";
-	};
-
-
 	struct bpf_link *link = NULL;
 	struct bpf_program *prog;
 	struct bpf_object *obj;
@@ -44,18 +33,7 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 
-	char* output = calloc(200, sizeof(char));
-
-	int trace_pipe_fd;
-
-	trace_pipe_fd = openat(AT_FDCWD, "/sys/kernel/debug/tracing/trace_pipe",
-		O_RDONLY);
-
-	for (;;) {
-		char c;
-		if (read(trace_pipe_fd, &c, 1) == 1)
-			putchar(c);
-	}
+	read_trace_pipe();
 
 cleanup:
 	bpf_link__destroy(link);
