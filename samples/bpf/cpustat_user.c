@@ -25,7 +25,8 @@ static int cstate_map_fd, pstate_map_fd;
 #define MAX_CSTATE_ENTRIES	3
 #define MAX_STARS		40
 
-#define CPUFREQ_MAX_SYSFS_PATH	"/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
+// #define CPUFREQ_MAX_SYSFS_PATH	"/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
+#define CPUFREQ_MAX_SYSFS_PATH	"/linux/temp_file"
 #define CPUFREQ_LOWEST_FREQ	"208000"
 #define CPUFREQ_HIGHEST_FREQ	"12000000"
 

@@ -125,7 +125,7 @@ download_rootfs()
 	fi
 
 	download "${ARCH}/libbpf-vmtest-rootfs-$rootfsversion.tar.zst" |
-		zstd -d | sudo tar -C "$dir" -x
+		zstd -d |   tar -C "$dir" -x
 }
 
 recompile_kernel()
@@ -144,14 +144,14 @@ mount_image()
 	local rootfs_img="${OUTPUT_DIR}/${ROOTFS_IMAGE}"
 	local mount_dir="${OUTPUT_DIR}/${MOUNT_DIR}"
 
-	sudo mount -o loop "${rootfs_img}" "${mount_dir}"
+	  mount -o loop "${rootfs_img}" "${mount_dir}"
 }
 
 unmount_image()
 {
 	local mount_dir="${OUTPUT_DIR}/${MOUNT_DIR}"
 
-	sudo umount "${mount_dir}" &> /dev/null
+	  umount "${mount_dir}" &> /dev/null
 }
 
 update_selftests()
@@ -164,8 +164,8 @@ update_selftests()
 
 	# Mount the image and copy the selftests to the image.
 	mount_image
-	sudo rm -rf "${mount_dir}/root/bpf"
-	sudo cp -r "${selftests_dir}" "${mount_dir}/root"
+	  rm -rf "${mount_dir}/root/bpf"
+	  cp -r "${selftests_dir}" "${mount_dir}/root"
 	unmount_image
 }
 
@@ -188,10 +188,10 @@ EOF
 
 	fi
 
-	sudo bash -c "echo '#!/bin/bash' > ${init_script}"
+	  bash -c "echo '#!/bin/bash' > ${init_script}"
 
 	if [[ "${command}" != "" ]]; then
-		sudo bash -c "cat >>${init_script}" <<EOF
+		  bash -c "cat >>${init_script}" <<EOF
 # Have a default value in the exit status file
 # incase the VM is forcefully stopped.
 echo "130" > "/root/${EXIT_STATUS_FILE}"
@@ -207,8 +207,8 @@ sync
 EOF
 	fi
 
-	sudo bash -c "echo ${exit_command} >> ${init_script}"
-	sudo chmod a+x "${init_script}"
+	  bash -c "echo ${exit_command} >> ${init_script}"
+	  chmod a+x "${init_script}"
 	unmount_image
 }
 
@@ -261,9 +261,9 @@ copy_logs()
 	local exit_status_file="${mount_dir}/root/${EXIT_STATUS_FILE}"
 
 	mount_image
-	sudo cp ${log_file} "${OUTPUT_DIR}"
-	sudo cp ${exit_status_file} "${OUTPUT_DIR}"
-	sudo rm -f ${log_file}
+	  cp ${log_file} "${OUTPUT_DIR}"
+	  cp ${exit_status_file} "${OUTPUT_DIR}"
+	  rm -f ${log_file}
 	unmount_image
 }
 

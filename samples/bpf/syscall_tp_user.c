@@ -26,7 +26,7 @@ static void verify_map(int map_id)
 {
 	__u32 key = 0;
 	__u32 val;
-
+	printf("Looking up map [map_id: %d]\n", map_id);
 	if (bpf_map_lookup_elem(map_id, &key, &val) != 0) {
 		fprintf(stderr, "map_lookup failed: %s\n", strerror(errno));
 		return;
@@ -70,6 +70,8 @@ static int test(char *filename, int num_progs)
 							      "enter_open_map");
 		map1_fds[i] = bpf_object__find_map_fd_by_name(objs[i],
 							      "exit_open_map");
+		printf("map1_fds: %d\n", map1_fds[0]);
+		
 		if (map0_fds[i] < 0 || map1_fds[i] < 0) {
 			fprintf(stderr, "finding a map in obj file failed\n");
 			goto cleanup;
@@ -86,7 +88,7 @@ static int test(char *filename, int num_progs)
 		}
 		printf("prog #%d: map ids %d %d\n", i, map0_fds[i], map1_fds[i]);
 	}
-
+	printf("map1_fds: %d\n", map1_fds[0]);
 	/* current load_bpf_file has perf_event_open default pid = -1
 	 * and cpu = 0, which permits attached bpf execution on
 	 * all cpus for all pid's. bpf program execution ignores
@@ -98,10 +100,14 @@ static int test(char *filename, int num_progs)
 		fprintf(stderr, "open failed: %s\n", strerror(errno));
 		return 1;
 	}
+	printf("map1_fds: %d\n", map1_fds[0]);
+
 	close(fd);
+	printf("map1_fds: %d\n", map1_fds[0]);
 
 	/* verify the map */
 	for (i = 0; i < num_progs; i++) {
+		printf("Verification Index: %d, map0_fd: %d map1_fd: %d\n", i, map0_fds[i], map1_fds[i]);
 		verify_map(map0_fds[i]);
 		verify_map(map1_fds[i]);
 	}

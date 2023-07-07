@@ -1643,7 +1643,7 @@ union bpf_attr {
  * 	Return
  * 		Current *ktime*.
  *
- * long bpf_trace_printk(const char *fmt, u32 fmt_size, ...)
+ * long (const char *fmt, u32 fmt_size, ...)
  * 	Description
  * 		This helper is a "printk()-like" facility for debugging. It
  * 		prints a message defined by format *fmt* (of size *fmt_size*)
