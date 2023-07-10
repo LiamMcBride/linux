@@ -1,3 +1,6 @@
+#include <bpf/libbpf.h>
+#include "trace_helpers.h"
+
 struct bpf_link_and_obj {
     struct bpf_link* link;
     struct bpf_object* obj;
