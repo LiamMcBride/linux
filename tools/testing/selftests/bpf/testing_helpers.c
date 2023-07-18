@@ -7,6 +7,7 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include "test_progs.h"
+#include "trace_helpers.h"
 #include "testing_helpers.h"
 
 int parse_num_list(const char *s, bool **num_set, int *num_set_len)

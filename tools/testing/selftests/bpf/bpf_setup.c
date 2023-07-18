@@ -1,21 +1,15 @@
-#include <bpf/libbpf.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <bpf/libbpf.h>
+#include <bpf/bpf.h>
 #include <unistd.h>
-#include "trace_helpers.h"
+#include <stdlib.h>
 #include "bpf_setup.h"
 
-// called when program is finished and link and object need to be cleaned
 void bpf_cleanup_program(struct bpf_link_and_obj bpf_lao) {
     bpf_link__destroy(bpf_lao.link);
     bpf_object__close(bpf_lao.obj);
 }
 
-/*
-    responsible for opening, loading, and attaching bpf prog from file and name
-	obj_file looks like "/linux/samples/bpf/hello_kern.o"
-    prog_name looks like "trace_enter_execve"
-*/
 struct bpf_link_and_obj bpf_program_load_and_attach(char* obj_file, char* prog_name){
 	struct bpf_program *prog;
     struct bpf_link_and_obj bpf_lao;
