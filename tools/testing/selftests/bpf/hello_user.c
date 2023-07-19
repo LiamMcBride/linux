@@ -125,20 +125,7 @@ int sample_test(){
 	return 0;
 }
 
-/*
-map1_fds: 5
-prog #0: map ids 4 5
-map1_fds: -1404642640
-map1_fds: -1404642640
-map1_fds: -1404642640
-Verification Index: 0, map0_fd: 4 map1_fd: -1404642640
-Looking up map [map_id: 4]
-verify map:4 val: 5
-Looking up map [map_id: -1404642640]
-map_lookup failed: Bad file descriptor
-*/
-
-static void verify_map(int map_id)
+static void syscall_tp_verify_map(int map_id)
 {
 	__u32 key = 0;
 	__u32 val;
@@ -161,13 +148,13 @@ static void verify_map(int map_id)
 	}
 }
 
-int syscall_tp_sys_enter_open_test(){
+int syscall_tp_helper(char* progName, char* mapName){
 	struct bpf_link_and_obj bpf_la;
 	
 	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/syscall_tp_kern.o",
-		"trace_enter_open");
+		progName);
 	//include actual testing here
-	int map_fd = bpf_object__find_map_fd_by_name(bpf_la.obj, "enter_open_map");
+	int map_fd = bpf_object__find_map_fd_by_name(bpf_la.obj, mapName);
 	printf("map file descriptor: %d\n", map_fd);
 
 	if(map_fd < 0){
@@ -181,9 +168,8 @@ int syscall_tp_sys_enter_open_test(){
 		printf("Error: Failed to open file");
 	}
 	close(fd);
-	system("cat ./hello_user.c");
-	sleep(1);
-	verify_map(map_fd);
+	// system("cat ./hello_user.c");
+	syscall_tp_verify_map(map_fd);
 
 
 	//end of testing
@@ -192,8 +178,23 @@ cleanup:
 	return 0;
 }
 
+void syscall_tp_test(){
+	printf("[test] prog: %s, map: %s\n", "trace_enter_open", "enter_open_map");
+	syscall_tp_helper("trace_enter_open", "enter_open_map");
+	printf("[test] prog: %s, map: %s\n", "trace_enter_open_at", "enter_open_map");
+	syscall_tp_helper("trace_enter_open_at", "enter_open_map");
+	printf("[test] prog: %s, map: %s\n", "trace_enter_open_at2", "enter_open_map");
+	syscall_tp_helper("trace_enter_open_at2", "enter_open_map");
+	printf("[test] prog: %s, map: %s\n", "trace_enter_exit", "exit_open_map");
+	syscall_tp_helper("trace_enter_exit", "exit_open_map");
+	printf("[test] prog: %s, map: %s\n", "trace_enter_exit_at", "exit_open_map");
+	syscall_tp_helper("trace_enter_exit_at", "exit_open_map");
+	printf("[test] prog: %s, map: %s\n", "trace_enter_exit_at2", "exit_open_map");
+	syscall_tp_helper("trace_enter_exit_at2", "exit_open_map");
+}
+
 int main(int argc, char **argv)
 {
 	hello_test();
-	syscall_tp_sys_enter_open_test();
+	syscall_tp_test();
 }
