@@ -12,16 +12,20 @@
 #include "testing_helpers.h"
 // #include "bpf_setup.h"
 
+//----bpf program helpers----
+//struct for easy transfer of bpf obj and link
 struct bpf_link_and_obj {
 	struct bpf_link* link;
 	struct bpf_object* obj;
 };
 
+//destroys link and closes obj
 void bpf_cleanup_program(struct bpf_link_and_obj bpf_lao) {
     bpf_link__destroy(bpf_lao.link);
     bpf_object__close(bpf_lao.obj);
 }
 
+//loads and attaches, returns a link and obj
 struct bpf_link_and_obj bpf_program_load_and_attach(char* obj_file, char* prog_name){
 	struct bpf_program *prog;
     struct bpf_link_and_obj bpf_lao;
@@ -62,6 +66,8 @@ success:
     return bpf_lao;
 }
 
+//----test hello----
+//reads the trace pipe
 void* read_pipe(void* buffer)
 {
 	char* buf = buffer;
@@ -80,11 +86,9 @@ void* read_pipe(void* buffer)
 	return NULL;
 }
 
-bool verify_output(char* output){
-	return strstr(output, "Hello, BPF World!") != NULL;
-}
-
+//test runner for hello
 int hello_test(){
+	printf("----[test hello]----\n");
 	struct bpf_link_and_obj bpf_la;
 	
 	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/hello_kern.o",
@@ -104,7 +108,7 @@ int hello_test(){
 	pthread_cancel(output_thread);
 	
 	pthread_join(output_thread, NULL);
-	if(verify_output(buf))
+	if(strstr(buf, "Hello, BPF World!") != NULL)
 		printf("[+] PASSED\n");
 	else
 		printf("[-] FAILED\n");
@@ -115,16 +119,8 @@ int hello_test(){
 	return 0;
 }
 
-int sample_test(){
-	struct bpf_link_and_obj bpf_la;
-	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/filename.o",
-		"program_name");
-	//include actual testing here
-	bpf_cleanup_program(bpf_la);
-	return 0;
-}
-
+//----test syscall_tp----
+//validates map values
 static void syscall_tp_verify_map(int map_id)
 {
 	__u32 key = 0;
@@ -148,49 +144,65 @@ static void syscall_tp_verify_map(int map_id)
 	}
 }
 
-int syscall_tp_helper(char* progName, char* mapName){
-	struct bpf_link_and_obj bpf_la;
+//test runner for syscall_tp
+int syscall_tp_test(){
+	printf("----[test syscall_tp]----\n");
+	struct bpf_link_and_obj bpf_las[6];
+	char* progNames[] = {
+		"trace_enter_open",
+		"trace_enter_open_at",
+		"trace_enter_open_at2",
+		"trace_enter_exit",
+		"trace_enter_exit_at",
+		"trace_enter_exit_at2"
+		};
+	char* mapNames[] = {
+		"enter_open_map",
+		"exit_open_map"
+		};
+
+	for(int i = 0; i < 6; i++){
+		char* mapName = mapNames[1];
+		if (i < 3)
+			mapName = mapNames[0];
+		printf("[%s] with map: %s\n", progNames[i], mapName);
+		bpf_las[i] = bpf_program_load_and_attach("/linux/samples/bpf/syscall_tp_kern.o",
+			progNames[i]);
+		int map_fd = bpf_object__find_map_fd_by_name(bpf_las[i].obj, mapName);
+		printf("map file descriptor: %d\n", map_fd);
+
+		if(map_fd < 0){
+			printf("Error: finding a map in obj file failed\n");
+		}
+
+		//trigger open operation
+		int fd = open("./hello_user.c", 0);
+		if (fd < 0){
+			printf("Error: Failed to open file");
+		}
+		close(fd);
+		syscall_tp_verify_map(map_fd);
+		printf("-------------------\n\n");
+		
+	}
 	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/syscall_tp_kern.o",
-		progName);
-	//include actual testing here
-	int map_fd = bpf_object__find_map_fd_by_name(bpf_la.obj, mapName);
-	printf("map file descriptor: %d\n", map_fd);
-
-	if(map_fd < 0){
-		printf("Error: finding a map in obj file failed\n");
-		goto cleanup;
+	for(int i = 0; i < 6; i++){
+		bpf_cleanup_program(bpf_las[i]);
 	}
 
-	//trigger open operation
-	int fd = open("./hello_user.c", 0);
-	if (fd < 0){
-		printf("Error: Failed to open file");
-	}
-	close(fd);
-	// system("cat ./hello_user.c");
-	syscall_tp_verify_map(map_fd);
-
-
-	//end of testing
-cleanup:
-	bpf_cleanup_program(bpf_la);
 	return 0;
 }
 
-void syscall_tp_test(){
-	printf("[test] prog: %s, map: %s\n", "trace_enter_open", "enter_open_map");
-	syscall_tp_helper("trace_enter_open", "enter_open_map");
-	printf("[test] prog: %s, map: %s\n", "trace_enter_open_at", "enter_open_map");
-	syscall_tp_helper("trace_enter_open_at", "enter_open_map");
-	printf("[test] prog: %s, map: %s\n", "trace_enter_open_at2", "enter_open_map");
-	syscall_tp_helper("trace_enter_open_at2", "enter_open_map");
-	printf("[test] prog: %s, map: %s\n", "trace_enter_exit", "exit_open_map");
-	syscall_tp_helper("trace_enter_exit", "exit_open_map");
-	printf("[test] prog: %s, map: %s\n", "trace_enter_exit_at", "exit_open_map");
-	syscall_tp_helper("trace_enter_exit_at", "exit_open_map");
-	printf("[test] prog: %s, map: %s\n", "trace_enter_exit_at2", "exit_open_map");
-	syscall_tp_helper("trace_enter_exit_at2", "exit_open_map");
+int sample_test(){
+	printf("----[test sample]----\n");
+
+	struct bpf_link_and_obj bpf_la;
+	
+	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/filename.o",
+		"program_name");
+	//include actual testing here
+	bpf_cleanup_program(bpf_la);
+	return 0;
 }
 
 int main(int argc, char **argv)
