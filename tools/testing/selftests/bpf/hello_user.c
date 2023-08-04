@@ -71,13 +71,15 @@ success:
 //----test hello----
 //reads the trace pipe
 struct read_pipe_params {
-	void* buffer;
+	char* buffer;
 	int num_lines;
 } read_pipe_params;
 
-void* read_pipe(void* buffer, int num_lines)
+void* read_pipe(void* params)
 {
-	char* buf = buffer;
+	struct read_pipe_params* rpp = (struct read_pipe_params*) params;
+	char* buf = rpp->buffer;
+	int num_lines = rpp->num_lines;
 	FILE* trace_fd;
 
 	trace_fd = fopen("/sys/kernel/debug/tracing/trace_pipe", "r");
@@ -96,10 +98,14 @@ void* read_pipe(void* buffer, int num_lines)
 	return NULL;
 }
 
-void trigger_execve_and_read_pipe(char* buf){
+void trigger_execve_and_read_pipe(char* buf, int num_lines){
 	pthread_t output_thread;
+	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
+	rpp->buffer = buf;
+	rpp->num_lines = num_lines;
+
 	if(pthread_create(&output_thread, NULL, 
-		(void*)read_pipe, (void*)buf) < 0){
+		(void*)read_pipe, (void*)rpp) < 0){
 		fprintf(stderr, "ERROR: reading thread failed to create\n");
 	}
 	sleep(.5);
@@ -121,7 +127,7 @@ int hello_test(){
 		"trace_enter_execve");
 
 	char buf[4096];
-	trigger_execve_and_read_pipe(buf);
+	trigger_execve_and_read_pipe(buf, 1);
 	if(strstr(buf, "Hello, BPF World!") != NULL)
 		printf("[+] PASSED\n");
 	else
@@ -222,7 +228,7 @@ int sid1_test(){
 		return 0;
 	}
 	char buf[4096];
-	trigger_execve_and_read_pipe(buf);
+	trigger_execve_and_read_pipe(buf, 4);
 	
 	printf("buf: %s\n", buf);
 	// read_pipe();
