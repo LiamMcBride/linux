@@ -45,7 +45,9 @@ struct bpf_link_and_obj bpf_program_load_and_attach(char* obj_file, char* prog_n
 	prog = bpf_object__find_program_by_name(bpf_lao.obj, prog_name);
 	if (!prog) {
 		printf("ERROR: finding a prog [%s] in obj file failed\n", prog_name);
-		goto cleanup;
+    	bpf_object__close(bpf_lao.obj);
+		struct bpf_link_and_obj bpf_la = {NULL, NULL};
+    	return bpf_la;
 	}
 
 	bpf_lao.link = bpf_program__attach(prog);
@@ -68,7 +70,12 @@ success:
 
 //----test hello----
 //reads the trace pipe
-void* read_pipe(void* buffer)
+struct read_pipe_params {
+	void* buffer;
+	int num_lines;
+} read_pipe_params;
+
+void* read_pipe(void* buffer, int num_lines)
 {
 	char* buf = buffer;
 	FILE* trace_fd;
@@ -78,23 +85,18 @@ void* read_pipe(void* buffer)
 		return NULL;
 
 	int i = 0;
-	while(i < 86){
+	do {
 		fread(buf + i, sizeof(char), 1, trace_fd);
 		i++;
-	}
+		if (*(buf + i - 1) == '\n'){
+			num_lines--;
+		}
+	} while(num_lines != 0);
 
 	return NULL;
 }
 
-//test runner for hello
-int hello_test(){
-	printf("----[test hello]----\n");
-	struct bpf_link_and_obj bpf_la;
-	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/hello_kern.o",
-		"trace_enter_execve");
-
-	char buf[4096];
+void trigger_execve_and_read_pipe(char* buf){
 	pthread_t output_thread;
 	if(pthread_create(&output_thread, NULL, 
 		(void*)read_pipe, (void*)buf) < 0){
@@ -108,6 +110,18 @@ int hello_test(){
 	pthread_cancel(output_thread);
 	
 	pthread_join(output_thread, NULL);
+}
+
+//test runner for hello
+int hello_test(){
+	printf("----[test hello]----\n");
+	struct bpf_link_and_obj bpf_la;
+	
+	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/hello_kern.o",
+		"trace_enter_execve");
+
+	char buf[4096];
+	trigger_execve_and_read_pipe(buf);
 	if(strstr(buf, "Hello, BPF World!") != NULL)
 		printf("[+] PASSED\n");
 	else
@@ -193,6 +207,29 @@ int syscall_tp_test(){
 	return 0;
 }
 
+int sid1_test(){
+	printf("----[test sid1]----\n");
+
+	struct bpf_link_and_obj bpf_la;
+	
+	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid1_bpf_kern.o",
+		"testing_tail_func");
+	//include actual testing here
+	int map_fd = bpf_object__find_map_fd_by_name(bpf_la.obj, "my_map");
+	if (map_fd < 0){
+		printf("Error: finding a map in obj file failed");
+		bpf_cleanup_program(bpf_la);
+		return 0;
+	}
+	char buf[4096];
+	trigger_execve_and_read_pipe(buf);
+	
+	printf("buf: %s\n", buf);
+	// read_pipe();
+	bpf_cleanup_program(bpf_la);
+	return 0;
+}
+
 int sample_test(){
 	printf("----[test sample]----\n");
 
@@ -208,5 +245,6 @@ int sample_test(){
 int main(int argc, char **argv)
 {
 	hello_test();
-	syscall_tp_test();
+	// syscall_tp_test();
+	sid1_test();
 }
