@@ -50,15 +50,6 @@ tprogs-y += task_fd_query
 tprogs-y += xdp_sample_pkts
 tprogs-y += ibumad
 tprogs-y += hbm
-tprogs-y += sid1_bpf
-tprogs-y += sid2_sp
-tprogs-y += sid3_tailcalls
-tprogs-y += sid4_tailcalls
-tprogs-y += sid5_stacksize
-tprogs-y += sid6_spinlock 
-tprogs-y += sid7_maxtailcalls
-tprogs-y += sid8_tailcalls
-tprogs-y += sid8_user
 
 tprogs-y += xdp_redirect_cpu
 tprogs-y += xdp_redirect_map_multi
@@ -99,9 +90,9 @@ test_cgrp2_array_pin-objs := test_cgrp2_array_pin.o
 test_cgrp2_attach-objs := test_cgrp2_attach.o
 test_cgrp2_sock-objs := test_cgrp2_sock.o
 test_cgrp2_sock2-objs := test_cgrp2_sock2.o
-xdp1-objs := xdp1_user.o ${TRACE_HELPERS}
+xdp1-objs := xdp1_user.o
 # reuse xdp1 source intentionally
-xdp2-objs := xdp1_user.o ${TRACE_HELPERS}
+xdp2-objs := xdp1_user.o
 test_current_task_under_cgroup-objs := $(CGROUP_HELPERS) \
 				       test_current_task_under_cgroup_user.o
 trace_event-objs := trace_event_user.o $(TRACE_HELPERS)
@@ -120,15 +111,6 @@ task_fd_query-objs := task_fd_query_user.o $(TRACE_HELPERS)
 xdp_sample_pkts-objs := xdp_sample_pkts_user.o
 ibumad-objs := ibumad_user.o
 hbm-objs := hbm.o $(CGROUP_HELPERS)
-sid1_bpf-objs := sid1_bpf_user.o ${TRACE_HELPERS}
-sid2_sp-objs := sid2_sp_user.o ${TRACE_HELPERS}
-sid3_tailcalls-objs := sid3_tailcalls_user.o ${TRACE_HELPERS}
-sid4_tailcalls-objs := sid4_tailcalls_user.o ${TRACE_HELPERS}
-sid5_stacksize-objs := sid5_stacksize_user.o ${TRACE_HELPERS}
-sid6_spinlock-objs := sid6_spinlock_user.o ${TRACE_HELPERS}
-sid7_maxtailcalls-objs := sid7_maxtailcalls_user.o ${TRACE_HELPERS}
-sid8_tailcalls-objs := sid8_tailcalls_user.o ${TRACE_HELPERS}
-sid8_tailcalls-objs := sid8_user.o ${TRACE_HELPERS}
 
 xdp_redirect_map_multi-objs := xdp_redirect_map_multi_user.o $(XDP_SAMPLE)
 xdp_redirect_cpu-objs := xdp_redirect_cpu_user.o $(XDP_SAMPLE)
@@ -191,14 +173,6 @@ always-y += xdp_sample_pkts_kern.o
 always-y += ibumad_kern.o
 always-y += hbm_out_kern.o
 always-y += hbm_edt_kern.o
-always-y += sid1_bpf_kern.o
-always-y += sid2_sp_kern.o
-always-y += sid3_tailcalls_kern.o
-always-y += sid4_tailcalls_kern.o
-always-y += sid5_stacksize_kern.o
-always-y += sid6_spinlock_kern.o 
-always-y += sid7_maxtailcalls_kern.o
-always-y += sid8_tailcalls_kern.o
 
 ifeq ($(ARCH), arm)
 # Strip all except -D__LINUX_ARM_ARCH__ option needed to handle linux
@@ -219,7 +193,6 @@ endif
 TPROGS_CFLAGS += -Wall -O2
 TPROGS_CFLAGS += -Wmissing-prototypes
 TPROGS_CFLAGS += -Wstrict-prototypes
-TPROGS_CFLAGS += -fno-inline-small-functions
 
 TPROGS_CFLAGS += -I$(objtree)/usr/include
 TPROGS_CFLAGS += -I$(srctree)/tools/testing/selftests/bpf/

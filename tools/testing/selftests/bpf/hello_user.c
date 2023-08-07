@@ -230,7 +230,7 @@ int sid1_test(){
 	char buf[4096];
 	trigger_execve_and_read_pipe(buf, 4);
 	
-	printf("buf: %s\n", buf);
+	printf("%s\n", buf);
 	// read_pipe();
 	bpf_cleanup_program(bpf_la);
 	return 0;
@@ -244,6 +244,7 @@ int sample_test(){
 	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/filename.o",
 		"program_name");
 	//include actual testing here
+	//read from pipe
 	bpf_cleanup_program(bpf_la);
 	return 0;
 }
@@ -251,6 +252,6 @@ int sample_test(){
 int main(int argc, char **argv)
 {
 	hello_test();
-	// syscall_tp_test();
+	syscall_tp_test();
 	sid1_test();
 }
