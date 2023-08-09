@@ -217,21 +217,38 @@ int sid1_test(){
 	printf("----[test sid1]----\n");
 
 	struct bpf_link_and_obj bpf_la;
-	
 	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid1_bpf_kern.o",
-		"testing_tail_func");
-	//include actual testing here
-	int map_fd = bpf_object__find_map_fd_by_name(bpf_la.obj, "my_map");
-	if (map_fd < 0){
-		printf("Error: finding a map in obj file failed");
-		bpf_cleanup_program(bpf_la);
-		return 0;
-	}
-	char buf[4096];
-	trigger_execve_and_read_pipe(buf, 4);
+		"trace_enter_execve");
+
+	char output_buf[4096];
+	trigger_execve_and_read_pipe(output_buf, 4);
 	
-	printf("%s\n", buf);
-	// read_pipe();
+	if(strstr(output_buf, "Inside my Testing Kernal Function") != NULL
+		&& strstr(output_buf, "Testing BPF printk helper") != NULL
+		&& strstr(output_buf, "Found:") != NULL){
+		printf("[+] PASSED\n");
+	}
+	else
+		printf("[-] FAILED\n");
+
+	printf("%s\n", output_buf);
+	bpf_cleanup_program(bpf_la);
+	return 0;
+}
+
+int sid6_test(){
+	printf("----[sid6 test]----\n");
+
+	struct bpf_link_and_obj bpf_la;
+	
+	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid6_spinlock_kern.o",
+		"trace_enter_execve");
+	//include actual testing here
+	char output_buf[4096];
+	trigger_execve_and_read_pipe(output_buf, 4);
+
+	printf("%s\n", output_buf);
+
 	bpf_cleanup_program(bpf_la);
 	return 0;
 }
@@ -253,5 +270,6 @@ int main(int argc, char **argv)
 {
 	hello_test();
 	syscall_tp_test();
+	sid6_test();
 	sid1_test();
 }

@@ -5,7 +5,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
-#include "trace_helpers.h"
+// #include "trace_helpers.h"
 
 #if defined(CONFIG_FUNCTION_TRACER)
 #define CC_USING_FENTRY
