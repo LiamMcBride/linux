@@ -243,8 +243,18 @@ int sid1_test(){
 		"trace_enter_execve");
 
 	char output_buf[4096];
-	trigger_execve_and_read_pipe(output_buf, 4);
+	// trigger_execve_and_read_pipe(output_buf, 4);
+	trigger_execve();
+	sleep(0.1);
+	bpf_cleanup_program(bpf_la);
 	
+	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
+	rpp->buffer = output_buf;
+	rpp->num_lines = 4;
+
+	read_pipe(rpp);
+
+
 	if(strstr(output_buf, "Inside my Testing Kernal Function") != NULL
 		&& strstr(output_buf, "Testing BPF printk helper") != NULL
 		&& strstr(output_buf, "Found:") != NULL){
@@ -254,7 +264,6 @@ int sid1_test(){
 		printf("[-] FAILED\n");
 
 	printf("%s\n", output_buf);
-	bpf_cleanup_program(bpf_la);
 	return 0;
 }
 
@@ -267,11 +276,17 @@ int sid6_test(){
 		"trace_enter_execve");
 	//include actual testing here
 	char output_buf[4096];
-	trigger_execve_and_read_pipe(output_buf, 3);
+	trigger_execve();
+	// trigger_execve_and_read_pipe(output_buf, 3);
+	sleep(0.1);
+	bpf_cleanup_program(bpf_la);
 
+	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
+	rpp->buffer = output_buf;
+	rpp->num_lines = 2;
+	read_pipe(rpp);
 	printf("%s\n", output_buf);
 
-	bpf_cleanup_program(bpf_la);
 	return 0;
 }
 
@@ -292,7 +307,7 @@ int main(int argc, char **argv)
 {
 	clean_trace_pipe();
 	hello_test();
-	// syscall_tp_test();
+	syscall_tp_test();
 	sid1_test();
 	sid6_test();
 }
