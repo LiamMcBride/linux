@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <string.h>
 #include "testing_helpers.h"
+
+int clean_count = 0;
 // #include "bpf_setup.h"
 
 //----bpf program helpers----
@@ -21,6 +23,8 @@ struct bpf_link_and_obj {
 
 //destroys link and closes obj
 void bpf_cleanup_program(struct bpf_link_and_obj bpf_lao) {
+	printf("\nCleanup #%d\n", clean_count);
+	clean_count++;
     bpf_link__destroy(bpf_lao.link);
     bpf_object__close(bpf_lao.obj);
 }
@@ -75,6 +79,13 @@ struct read_pipe_params {
 	int num_lines;
 } read_pipe_params;
 
+void clean_trace_pipe(){
+	system("echo -n '' > /sys/kernel/debug/tracing/trace_pipe");
+	printf("Cleaned, now we will read the contents:\n");
+	system("timeout 2 cat /sys/kernel/debug/tracing/trace_pipe");
+	printf("-----------------------\n");
+}
+
 void* read_pipe(void* params)
 {
 	struct read_pipe_params* rpp = (struct read_pipe_params*) params;
@@ -95,6 +106,8 @@ void* read_pipe(void* params)
 		}
 	} while(num_lines != 0);
 
+	fclose(trace_fd);
+
 	return NULL;
 }
 
@@ -103,6 +116,8 @@ void trigger_execve_and_read_pipe(char* buf, int num_lines){
 	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
 	rpp->buffer = buf;
 	rpp->num_lines = num_lines;
+
+	// clean_trace_pipe();
 
 	if(pthread_create(&output_thread, NULL, 
 		(void*)read_pipe, (void*)rpp) < 0){
@@ -245,7 +260,7 @@ int sid6_test(){
 		"trace_enter_execve");
 	//include actual testing here
 	char output_buf[4096];
-	trigger_execve_and_read_pipe(output_buf, 4);
+	trigger_execve_and_read_pipe(output_buf, 3);
 
 	printf("%s\n", output_buf);
 
@@ -269,7 +284,7 @@ int sample_test(){
 int main(int argc, char **argv)
 {
 	hello_test();
-	syscall_tp_test();
-	sid6_test();
+	// syscall_tp_test();
 	sid1_test();
+	sid6_test();
 }
