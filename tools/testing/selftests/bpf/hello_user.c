@@ -10,8 +10,6 @@
 #include <errno.h>
 #include <string.h>
 #include "testing_helpers.h"
-
-int clean_count = 0;
 // #include "bpf_setup.h"
 
 //----bpf program helpers----
@@ -23,8 +21,6 @@ struct bpf_link_and_obj {
 
 //destroys link and closes obj
 void bpf_cleanup_program(struct bpf_link_and_obj bpf_lao) {
-	printf("\nCleanup #%d\n", clean_count);
-	clean_count++;
     bpf_link__destroy(bpf_lao.link);
     bpf_object__close(bpf_lao.obj);
 }
@@ -80,8 +76,8 @@ struct read_pipe_params {
 } read_pipe_params;
 
 void clean_trace_pipe(){
-	system("echo -n '' > /sys/kernel/debug/tracing/trace_pipe");
-	printf("Cleaned, now we will read the contents:\n");
+	// system("echo -n '' > /sys/kernel/debug/tracing/trace_pipe");
+	printf("Cleaning trace pipe:\n");
 	system("timeout 2 cat /sys/kernel/debug/tracing/trace_pipe");
 	printf("-----------------------\n");
 }
@@ -111,6 +107,13 @@ void* read_pipe(void* params)
 	return NULL;
 }
 
+void trigger_execve(){
+	FILE* ls_pipe = popen("ls", "r");
+	if(ls_pipe == NULL){
+		perror("Error executing ls command");
+	}
+}
+
 void trigger_execve_and_read_pipe(char* buf, int num_lines){
 	pthread_t output_thread;
 	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
@@ -124,10 +127,7 @@ void trigger_execve_and_read_pipe(char* buf, int num_lines){
 		fprintf(stderr, "ERROR: reading thread failed to create\n");
 	}
 	sleep(.5);
-	FILE* ls_pipe = popen("ls", "r");
-	if(ls_pipe == NULL){
-		perror("Error executing ls command");
-	}
+	trigger_execve();
 	pthread_cancel(output_thread);
 	
 	pthread_join(output_thread, NULL);
@@ -142,15 +142,22 @@ int hello_test(){
 		"trace_enter_execve");
 
 	char buf[4096];
-	trigger_execve_and_read_pipe(buf, 1);
+	// trigger_execve_and_read_pipe(buf, 1);
+	trigger_execve();
+	sleep(0.5);
+	bpf_cleanup_program(bpf_la);
+	
+	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
+	rpp->buffer = buf;
+	rpp->num_lines = 1;
+
+	read_pipe(rpp);
 	if(strstr(buf, "Hello, BPF World!") != NULL)
 		printf("[+] PASSED\n");
 	else
 		printf("[-] FAILED\n");
-
 	printf("%s\n", buf);
 
-	bpf_cleanup_program(bpf_la);
 	return 0;
 }
 
@@ -283,6 +290,7 @@ int sample_test(){
 
 int main(int argc, char **argv)
 {
+	clean_trace_pipe();
 	hello_test();
 	// syscall_tp_test();
 	sid1_test();
