@@ -17,9 +17,9 @@ int trace_enter_execve(void *ctx){
 
     bpf_printk("Inside the kernel function\n");
     
-    int x = bpf_get_stack_size();
+    // int x = bpf_get_stack_size();
 
-    bpf_printk("testing bpf_get_stack_size helper %d", x);
+    bpf_printk("testing bpf_get_stack_size helper");
     
     return 0;
 
