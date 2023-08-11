@@ -5,7 +5,6 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
-#include "trace_helpers.h"
 
 #include <uapi/linux/bpf_perf_event.h>
 #include <uapi/linux/perf_event.h>
@@ -82,9 +81,8 @@ int trace_enter_execve(void *ctx){
     bpf_printk("Inside the trace_enter_execve kernel function\n");
     
 
-    unsigned long x = bpf_get_stack_size();
 
-    bpf_printk("testing bpf_get_stack_size helper %lx\n", x);
+    bpf_printk("testing bpf_get_stack_size helper\n");
 
     unsigned char stack_space[SIZEOFSTACK] = {0};
     bpf_printk("initial stack address of stack_space array which is also intial sp: %px", &stack_space[SIZEOFSTACK-1]);   

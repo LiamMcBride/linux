@@ -19,6 +19,14 @@ struct bpf_link_and_obj {
 	struct bpf_object* obj;
 };
 
+struct bpf_test {
+	char* name;
+	char* file;
+	char** desired_outputs;
+	int trace_pipe;
+	int map;
+};
+
 //destroys link and closes obj
 void bpf_cleanup_program(struct bpf_link_and_obj bpf_lao) {
     bpf_link__destroy(bpf_lao.link);
@@ -78,7 +86,7 @@ struct read_pipe_params {
 void clean_trace_pipe(){
 	// system("echo -n '' > /sys/kernel/debug/tracing/trace_pipe");
 	printf("Cleaning trace pipe:\n");
-	system("timeout 2 cat /sys/kernel/debug/tracing/trace_pipe");
+	system("timeout 2 cat /sys/kernel/debug/tracing/trace_pipe > /dev/null");
 	printf("-----------------------\n");
 }
 
@@ -267,6 +275,35 @@ int sid1_test(){
 	return 0;
 }
 
+int sid2_test(){
+	printf("----[sid2 test]----\n");
+
+	struct bpf_link_and_obj bpf_la;
+	
+	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid2_sp_kern.o",
+		"trace_enter_execve");
+	char output_buf[4096];
+	trigger_execve();
+	sleep(.1);
+	bpf_cleanup_program(bpf_la);
+
+	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
+	rpp->buffer = output_buf;
+	rpp->num_lines = 1;
+	read_pipe(rpp);
+
+	if(strstr(output_buf, "Inside the kernel function")
+	&& strstr(output_buf, "Testing BPF printk helper")){
+		printf("[+] PASSED\n");
+	}
+	else{
+		printf("[-] FAILED\n");
+	}
+
+	printf("%s\n", output_buf);
+	return 0;
+}
+
 int sid6_test(){
 	printf("----[sid6 test]----\n");
 
@@ -285,6 +322,15 @@ int sid6_test(){
 	rpp->buffer = output_buf;
 	rpp->num_lines = 2;
 	read_pipe(rpp);
+
+	if(strstr(output_buf, "before spinlock function")
+	&& strstr(output_buf, "inside first tail-call")){
+		printf("[+] PASSED\n");
+	}
+	else{
+		printf("[-] FAILED\n");
+	}
+
 	printf("%s\n", output_buf);
 
 	return 0;
@@ -303,11 +349,97 @@ int sample_test(){
 	return 0;
 }
 
+//test runner for hello
+int universal_test(struct bpf_test test){
+	char* name = strrchr(test.file, '/');
+	name = name + 1;
+
+	printf("----[test %s]----\n", name);
+	struct bpf_link_and_obj bpf_la;
+	
+	bpf_la = bpf_program_load_and_attach(test.file,
+		test.name);
+
+	int line_num = 0;
+
+	while(test.desired_outputs[line_num] != NULL){
+		line_num++;
+	}
+
+	char buf[4096];
+	// trigger_execve_and_read_pipe(buf, 1);
+	trigger_execve();
+	sleep(0.5);
+	bpf_cleanup_program(bpf_la);
+	
+	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
+	rpp->buffer = buf;
+	rpp->num_lines = line_num;
+
+	read_pipe(rpp);
+
+	int count = 0;
+	int correct = 1;
+
+	while(test.desired_outputs[count] != NULL){
+		if(!strstr(buf, test.desired_outputs[count])){
+			correct = 0;
+			break;
+		}
+		count++;
+	}
+
+	if(correct == 1){
+		printf("[+] PASSED\n");
+	}
+	else{
+		printf("[-] FAILED\n");
+	}
+	printf("%s\n", buf);
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
+	struct bpf_test* tests = malloc(sizeof(struct bpf_test) * 4);
+	(tests + 0)->name = "trace_enter_execve";
+	(tests + 0)->file = "/linux/samples/bpf/hello_kern.o";
+	(tests + 0)->desired_outputs = calloc(sizeof(char*), 2);
+	(tests + 0)->desired_outputs[0] = "Hello, BPF World!";
+	(tests + 0)->trace_pipe = 1;
+	(tests + 0)->map = 0;
+
+	/*
+	if(strstr(output_buf, "Inside my Testing Kernal Function") != NULL
+		&& strstr(output_buf, "Testing BPF printk helper") != NULL
+		&& strstr(output_buf, "Found:"
+	*/
+	
+	(tests + 1)->name = "trace_enter_execve";
+	(tests + 1)->file = "/linux/samples/bpf/sid1_bpf_kern.o";
+	(tests + 1)->desired_outputs = calloc(sizeof(char*), 4);
+	(tests + 1)->desired_outputs[0] = "Inside my Testing Kernal Function";
+	(tests + 1)->desired_outputs[1] = "Testing BPF printk helper";
+	(tests + 1)->desired_outputs[2] = "Found:";
+	(tests + 1)->trace_pipe = 1;
+	(tests + 1)->map = 0;
+	
+	(tests + 2)->name = "trace_enter_execve";
+	(tests + 2)->file = "/linux/samples/bpf/sid2_sp_kern.o";
+	(tests + 2)->desired_outputs = calloc(sizeof(char*), 3);
+	(tests + 2)->desired_outputs[0] = "Inside the kernel function";
+	(tests + 2)->desired_outputs[1] = "Testing BPF printk helper";
+	(tests + 2)->trace_pipe = 1;
+	(tests + 2)->map = 0;
+
 	clean_trace_pipe();
-	hello_test();
-	syscall_tp_test();
-	sid1_test();
-	sid6_test();
+	universal_test(tests[0]);
+	universal_test(tests[1]);
+	universal_test(tests[2]);
+	// hello_test();
+	// syscall_tp_test();
+	// sid1_test();
+	// sid2_test();
+	// sid6_test();
 }

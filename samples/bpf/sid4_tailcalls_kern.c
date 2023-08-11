@@ -5,7 +5,6 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
-#include "trace_helpers.h"
 
 #include <uapi/linux/bpf_perf_event.h>
 #include <uapi/linux/perf_event.h>
@@ -34,8 +33,7 @@ static __attribute__((__noinline__)) int testing_bpf_to_bpf_calls ## X(void *ctx
         bpf_trace_printk(fmt_str, sizeof(fmt_str), stack_space + 0, stack_space[0]); \
     for(i = 0; i < SIZEOFSTACK; i++) { \
     }   \
-    unsigned long x = bpf_get_stack_size(); \
-    bpf_printk("testing_tail_func%s: bpf_get_stack_size helper %lx\n", #X,x);\
+    bpf_printk("testing_tail_func%s: bpf_get_stack_size helper\n", #X);\
     bpf_tail_call(ctx, &prog_array_init ## Y, 1); \
     return 0; \
 } \
@@ -51,8 +49,7 @@ int testing_tail_func ## X(void *ctx){ \
         bpf_trace_printk(fmt_str, sizeof(fmt_str), stack_space + 0, stack_space[0]); \
     for(i = 0; i < SIZEOFSTACK; i++) { \
     }   \
-    unsigned long x = bpf_get_stack_size(); \
-    bpf_printk("testing_tail_func%s: bpf_get_stack_size helper %lx\n",#X ,x);\
+    bpf_printk("testing_tail_func%s: bpf_get_stack_size helper\n",#X);\
     testing_bpf_to_bpf_calls ## X(ctx); \ 
     return 0; \
 } \
@@ -87,9 +84,8 @@ static __attribute__((__noinline__)) int testing_b2b_last(void *ctx){
     }   
 	
     
-    unsigned long x = bpf_get_stack_size();
 
-    bpf_printk("end testing bpf_get_stack_size helper %lx\n", x);
+    bpf_printk("end testing bpf_get_stack_size helper\n");
     return 0;
 
 }
@@ -113,9 +109,8 @@ static __attribute__((__noinline__)) int testing_bpf_to_bpf_calls_final(void *ct
     }   
 	
     
-    unsigned long x = bpf_get_stack_size();
 
-    bpf_printk("end before testing bpf_get_stack_size helper %lx\n", x);
+    bpf_printk("end before testing bpf_get_stack_size helper\n");
     //testing_b2b_last(ctx);
     return 0;
 
@@ -140,9 +135,8 @@ int testing_tail_func29(void *ctx){
     //    bpf_trace_printk(fmt_str, sizeof(fmt_str), stack_space + i, stack_space[i]);
     }   
 	
-    unsigned long x = bpf_get_stack_size();
 
-    bpf_printk("testing_tail_func29: bpf_get_stack_size helper %lx\n", x);
+    bpf_printk("testing_tail_func29: bpf_get_stack_size helper\n");
     //testing_bpf_to_bpf_calls_final(ctx);
     return 0;
 
@@ -257,9 +251,8 @@ int trace_enter_execve(void *ctx){
     
     bpf_printk("Inside the trace_enter_execve kernel function\n");
     
-    unsigned long x = bpf_get_stack_size();
 
-    bpf_printk("testing bpf_get_stack_size helper %lx\n", x);
+    bpf_printk("testing bpf_get_stack_size helper\n");
 
     /* SIZEOFSTACK bytes */
     unsigned char stack_space[SIZEOFSTACK] = {0};
