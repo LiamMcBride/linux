@@ -13,6 +13,11 @@
 // #include "bpf_setup.h"
 
 //----bpf program helpers----
+//reads the trace pipe
+struct read_pipe_params {
+	char* buffer;
+	int num_lines;
+} read_pipe_params;
 //struct for easy transfer of bpf obj and link
 struct bpf_link_and_obj {
 	struct bpf_link* link;
@@ -77,11 +82,7 @@ success:
 }
 
 //----test hello----
-//reads the trace pipe
-struct read_pipe_params {
-	char* buffer;
-	int num_lines;
-} read_pipe_params;
+
 
 void clean_trace_pipe(){
 	// system("echo -n '' > /sys/kernel/debug/tracing/trace_pipe");
@@ -402,7 +403,8 @@ int universal_test(struct bpf_test test){
 
 int main(int argc, char **argv)
 {
-	struct bpf_test* tests = malloc(sizeof(struct bpf_test) * 4);
+	int test_count = 4;
+	struct bpf_test* tests = calloc(sizeof(struct bpf_test), test_count);
 	(tests + 0)->name = "trace_enter_execve";
 	(tests + 0)->file = "/linux/samples/bpf/hello_kern.o";
 	(tests + 0)->desired_outputs = calloc(sizeof(char*), 2);
@@ -410,12 +412,6 @@ int main(int argc, char **argv)
 	(tests + 0)->trace_pipe = 1;
 	(tests + 0)->map = 0;
 
-	/*
-	if(strstr(output_buf, "Inside my Testing Kernal Function") != NULL
-		&& strstr(output_buf, "Testing BPF printk helper") != NULL
-		&& strstr(output_buf, "Found:"
-	*/
-	
 	(tests + 1)->name = "trace_enter_execve";
 	(tests + 1)->file = "/linux/samples/bpf/sid1_bpf_kern.o";
 	(tests + 1)->desired_outputs = calloc(sizeof(char*), 4);
@@ -432,14 +428,34 @@ int main(int argc, char **argv)
 	(tests + 2)->desired_outputs[1] = "Testing BPF printk helper";
 	(tests + 2)->trace_pipe = 1;
 	(tests + 2)->map = 0;
+	
+	(tests + 3)->name = "trace_enter_execve";
+	(tests + 3)->file = "/linux/samples/bpf/sid3_tailcalls_kern.o";
+	(tests + 3)->desired_outputs = calloc(sizeof(char*), 3);
+	(tests + 3)->desired_outputs[0] = "Inside the trace_enter_execve kernel function";
+	(tests + 3)->desired_outputs[1] = "Testing BPF printk helper";
+	(tests + 3)->trace_pipe = 1;
+	(tests + 3)->map = 0;
 
 	clean_trace_pipe();
-	universal_test(tests[0]);
-	universal_test(tests[1]);
-	universal_test(tests[2]);
-	// hello_test();
-	// syscall_tp_test();
-	// sid1_test();
-	// sid2_test();
-	// sid6_test();
+	for(int i = 0; i < test_count; i++){
+		universal_test(tests[i]);
+	}
+
+	//cleanup
+	for(int i = 0; i < test_count; i++){
+		tests[i].name = NULL;
+		tests[i].file = NULL;
+		free(tests[i].name);
+		free(tests[i].file);
+		int k = 0;
+		while(tests[i].desired_outputs[k] != NULL){
+			tests[i].desired_outputs[k] = NULL;
+			free(tests[i].desired_outputs[k]);
+		}
+		tests[i].desired_outputs = NULL;
+		free(tests[i].desired_outputs);
+	}
+	tests = NULL;
+	free(tests);
 }
