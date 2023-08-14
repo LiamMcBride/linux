@@ -1,0 +1,42 @@
+[
+    {
+        "name": "trace_enter_execve",
+        "file": "/linux/samples/bpf/hello_kern.o",
+        "trace_pipe": 1,
+        "map": 0,
+        "desired_outputs": [
+            "Hello, BPF World!"
+        ]
+    },
+    {
+        "name": "trace_enter_execve",
+        "file": "/linux/samples/bpf/sid1_bpf_kern.o",
+        "trace_pipe": 1,
+        "map": 0,
+        "desired_outputs": [
+            "Inside my Testing Kernal Function",
+            "Testing BPF printk helper",
+            "Found:"
+        ]
+    },
+    {
+        "name": "trace_enter_execve",
+        "file": "/linux/samples/bpf/sid2_sp_kern.o",
+        "trace_pipe": 1,
+        "map": 0,
+        "desired_outputs": [
+            "Inside the kernel function",
+            "Testing BPF printk helper"
+        ]
+    },
+    {
+        "name": "trace_enter_execve",
+        "file": "/linux/samples/bpf/sid3_tailcalls_kern.o",
+        "trace_pipe": 1,
+        "map": 0,
+        "desired_outputs": [
+            "Inside the trace_enter_execve kernel function",
+            "Testing BPF printk helper"
+        ]
+    }
+]

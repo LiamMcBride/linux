@@ -142,36 +142,7 @@ void trigger_execve_and_read_pipe(char* buf, int num_lines){
 	pthread_join(output_thread, NULL);
 }
 
-//test runner for hello
-int hello_test(){
-	printf("----[test hello]----\n");
-	struct bpf_link_and_obj bpf_la;
-	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/hello_kern.o",
-		"trace_enter_execve");
-
-	char buf[4096];
-	// trigger_execve_and_read_pipe(buf, 1);
-	trigger_execve();
-	sleep(0.5);
-	bpf_cleanup_program(bpf_la);
-	
-	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
-	rpp->buffer = buf;
-	rpp->num_lines = 1;
-
-	read_pipe(rpp);
-	if(strstr(buf, "Hello, BPF World!") != NULL)
-		printf("[+] PASSED\n");
-	else
-		printf("[-] FAILED\n");
-	printf("%s\n", buf);
-
-	return 0;
-}
-
 //----test syscall_tp----
-//validates map values
 static void syscall_tp_verify_map(int map_id)
 {
 	__u32 key = 0;
@@ -244,112 +215,6 @@ int syscall_tp_test(){
 	return 0;
 }
 
-int sid1_test(){
-	printf("----[test sid1]----\n");
-
-	struct bpf_link_and_obj bpf_la;
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid1_bpf_kern.o",
-		"trace_enter_execve");
-
-	char output_buf[4096];
-	// trigger_execve_and_read_pipe(output_buf, 4);
-	trigger_execve();
-	sleep(0.1);
-	bpf_cleanup_program(bpf_la);
-	
-	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
-	rpp->buffer = output_buf;
-	rpp->num_lines = 4;
-
-	read_pipe(rpp);
-
-
-	if(strstr(output_buf, "Inside my Testing Kernal Function") != NULL
-		&& strstr(output_buf, "Testing BPF printk helper") != NULL
-		&& strstr(output_buf, "Found:") != NULL){
-		printf("[+] PASSED\n");
-	}
-	else
-		printf("[-] FAILED\n");
-
-	printf("%s\n", output_buf);
-	return 0;
-}
-
-int sid2_test(){
-	printf("----[sid2 test]----\n");
-
-	struct bpf_link_and_obj bpf_la;
-	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid2_sp_kern.o",
-		"trace_enter_execve");
-	char output_buf[4096];
-	trigger_execve();
-	sleep(.1);
-	bpf_cleanup_program(bpf_la);
-
-	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
-	rpp->buffer = output_buf;
-	rpp->num_lines = 1;
-	read_pipe(rpp);
-
-	if(strstr(output_buf, "Inside the kernel function")
-	&& strstr(output_buf, "Testing BPF printk helper")){
-		printf("[+] PASSED\n");
-	}
-	else{
-		printf("[-] FAILED\n");
-	}
-
-	printf("%s\n", output_buf);
-	return 0;
-}
-
-int sid6_test(){
-	printf("----[sid6 test]----\n");
-
-	struct bpf_link_and_obj bpf_la;
-	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/sid6_spinlock_kern.o",
-		"trace_enter_execve");
-	//include actual testing here
-	char output_buf[4096];
-	trigger_execve();
-	// trigger_execve_and_read_pipe(output_buf, 3);
-	sleep(0.1);
-	bpf_cleanup_program(bpf_la);
-
-	struct read_pipe_params* rpp = malloc(sizeof(struct read_pipe_params));
-	rpp->buffer = output_buf;
-	rpp->num_lines = 2;
-	read_pipe(rpp);
-
-	if(strstr(output_buf, "before spinlock function")
-	&& strstr(output_buf, "inside first tail-call")){
-		printf("[+] PASSED\n");
-	}
-	else{
-		printf("[-] FAILED\n");
-	}
-
-	printf("%s\n", output_buf);
-
-	return 0;
-}
-
-int sample_test(){
-	printf("----[test sample]----\n");
-
-	struct bpf_link_and_obj bpf_la;
-	
-	bpf_la = bpf_program_load_and_attach("/linux/samples/bpf/filename.o",
-		"program_name");
-	//include actual testing here
-	//read from pipe
-	bpf_cleanup_program(bpf_la);
-	return 0;
-}
-
 //test runner for hello
 int universal_test(struct bpf_test test){
 	char* name = strrchr(test.file, '/');
@@ -401,6 +266,22 @@ int universal_test(struct bpf_test test){
 	return 0;
 }
 
+struct bpf_test* parser(){
+	FILE* data = fopen("./bpf_tests.json", "r");
+
+	char sec[100];
+	char val[1024];
+
+	do {
+		char c = fgetc(data);
+		if(feof(data)){
+			break;
+		}
+	} while(1);
+
+
+}
+
 int main(int argc, char **argv)
 {
 	int test_count = 4;
@@ -436,6 +317,13 @@ int main(int argc, char **argv)
 	(tests + 3)->desired_outputs[1] = "Testing BPF printk helper";
 	(tests + 3)->trace_pipe = 1;
 	(tests + 3)->map = 0;
+
+
+
+
+
+
+	
 
 	clean_trace_pipe();
 	for(int i = 0; i < test_count; i++){
