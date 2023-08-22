@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <stdio.h>
 #include <bpf/libbpf.h>
+#include <bpf/bpf.h>
 #include "trace_helpers.h"
 #include <unistd.h>
 #include <pthread.h>
@@ -215,6 +216,64 @@ int syscall_tp_test(){
 	return 0;
 }
 
+int prog_test_test(struct bpf_test test){
+	char* name = strrchr(test.file, '/');
+	name = name + 1;
+	printf("----[test %s]----\n", name);
+
+	// union bpf_attr* attr;
+	// attr->prog_fd
+	// attr->
+	/*
+	Run the eBPF program associated with the prog_fd
+	a repeat number of times against a provided
+	program context ctx_in and data data_in,
+	and return the modified program context ctx_out,
+	data_out (for example, packet data), result of
+	the execution retval, and duration of the test
+	run.
+	*/
+	//int bpf_prog_test_run_opts (int prog_fd, struct bpf_test_run_opts *opts)
+	int prog_fd;
+	struct bpf_test_run_opts opts = {
+		.data_in = NULL,
+		.data_size_in = sizeof(opts.data_in),
+	};
+
+	struct bpf_program *prog;
+    struct bpf_link_and_obj bpf_lao;
+
+	char* obj_file = "/linux/samples/bpf/hello_kern.o";
+	char* prog_name = "trace_enter_execve";
+
+	bpf_lao.obj = bpf_object__open_file(obj_file, NULL);
+	if (libbpf_get_error(bpf_lao.obj)) {
+		printf("ERROR: opening BPF object file [%s] failed\n", obj_file);
+		return 1;
+	}
+
+	if (bpf_object__load(bpf_lao.obj)) {
+		printf("ERROR: loading BPF object file failed\n");
+		return 1;
+	}
+
+	prog = bpf_object__find_program_by_name(bpf_lao.obj, prog_name);
+	if (!prog) {
+		printf("ERROR: finding a prog [%s] in obj file failed\n", prog_name);
+    	bpf_object__close(bpf_lao.obj);
+    	return 1;
+	}
+
+	bpf_prog
+	
+
+
+
+	int ret = bpf_prog_test_run_opts(prog_fd, &opts);
+
+	return 0;
+}
+
 //test runner for hello
 int universal_test(struct bpf_test test){
 	char* name = strrchr(test.file, '/');
@@ -266,22 +325,6 @@ int universal_test(struct bpf_test test){
 	return 0;
 }
 
-struct bpf_test* parser(){
-	FILE* data = fopen("./bpf_tests.json", "r");
-
-	char sec[100];
-	char val[1024];
-
-	do {
-		char c = fgetc(data);
-		if(feof(data)){
-			break;
-		}
-	} while(1);
-
-
-}
-
 int main(int argc, char **argv)
 {
 	int test_count = 4;
@@ -323,7 +366,7 @@ int main(int argc, char **argv)
 
 
 
-	
+
 
 	clean_trace_pipe();
 	for(int i = 0; i < test_count; i++){
